@@ -24,6 +24,7 @@ describe('normalizeCodexActivity', () => {
       activeThreads: [{ threadId: 'user-thread' }],
       checkedThreadCount: 2,
       isUserActive: true,
+      latestNonOwnedThreadUpdatedAt: 100,
     });
   });
 
@@ -34,7 +35,27 @@ describe('normalizeCodexActivity', () => {
       thread({ status: { type: 'systemError' }, threadId: 'error' }),
     ]);
 
-    expect(activity).toEqual({ activeThreads: [], checkedThreadCount: 3, isUserActive: false });
+    expect(activity).toEqual({
+      activeThreads: [],
+      checkedThreadCount: 3,
+      isUserActive: false,
+      latestNonOwnedThreadUpdatedAt: 100,
+    });
+  });
+
+  test('ignores owned threads when calculating the latest activity', () => {
+    const activity = normalizeCodexActivity(
+      [
+        thread({ threadId: 'owned-thread', updatedAt: 300 }),
+        thread({ threadId: 'user-thread', updatedAt: 200 }),
+      ],
+      { ownedThreadIds: ['owned-thread'] },
+    );
+
+    expect(activity).toMatchObject({
+      activeThreads: [],
+      latestNonOwnedThreadUpdatedAt: 200,
+    });
   });
 });
 
@@ -53,6 +74,7 @@ describe('formatActivity', () => {
         ],
         checkedThreadCount: 8,
         isUserActive: true,
+        latestNonOwnedThreadUpdatedAt: 100,
       }),
     ).toBe(`Codex local activity: busy
 Checked threads: 8

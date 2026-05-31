@@ -20,25 +20,16 @@ export {
 } from './codex/quota.js';
 export { defaultConfigText, type CodexUsageMaxingConfig } from './config/default-config.js';
 export {
-  DEFAULT_SLOT_COOLDOWN_MS,
   MANAGED_BRANCH_PREFIX,
   MANAGED_LABEL,
   createManagedPrMarker,
   createWorkflowSlot,
   hashWorkflowConfig,
   parseManagedPrMarker,
-  planIdempotentRun,
+  renderManagedPrInstructions,
   renderManagedPrMarker,
-  type IdempotentRunPlan,
-  type IdempotentRunStep,
   type ManagedPrMarker,
-  type ManagedPullRequestSnapshot,
-  type ManagedPullRequestStatus,
-  type ManagedWorktreeSnapshot,
-  type PlanIdempotentRunInput,
-  type WorkflowRunTarget,
   type WorkflowSlot,
   type WorkflowSlotIdentity,
-  type WorktreePlan,
 } from './runner/idempotent-run.js';
-export type { WorkflowDefinition, WorkflowResult } from './workflows/types.js';
+export type { WorkflowDefinition } from './workflows/types.js';

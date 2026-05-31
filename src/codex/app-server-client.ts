@@ -28,7 +28,7 @@ type PendingRequest = {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const MAX_STDERR_CHARS = 4000;
-const PACKAGE_VERSION = '0.1.0';
+const PACKAGE_VERSION = '0.1.1';
 
 export class CodexAppServerClient {
   readonly #codexBin: string;

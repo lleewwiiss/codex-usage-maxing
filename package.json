@@ -1,7 +1,7 @@
 {
   "name": "codex-usage-maxing",
-  "version": "0.1.0",
-  "description": "Experimental Codex quota/activity CLI and runner scaffold.",
+  "version": "0.1.1",
+  "description": "Experimental Codex quota daemon for calculated tech-debt PRs.",
   "homepage": "https://github.com/lleewwiiss/codex-usage-maxing#readme",
   "bugs": {
     "url": "https://github.com/lleewwiiss/codex-usage-maxing/issues"

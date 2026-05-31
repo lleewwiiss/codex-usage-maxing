@@ -351,7 +351,7 @@ ${prelude}
         }
         const message = JSON.parse(line);
         if (message.method === 'initialize') {
-          if (message.params?.clientInfo?.version !== '0.1.0') {
+          if (message.params?.clientInfo?.version !== '0.1.1') {
             process.stderr.write('wrong client version\\n');
             process.exit(9);
           }

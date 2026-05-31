@@ -29,6 +29,7 @@ export type CodexActivitySnapshot = {
   readonly activeThreads: ReadonlyArray<CodexActiveThreadSummary>;
   readonly checkedThreadCount: number;
   readonly isUserActive: boolean;
+  readonly latestNonOwnedThreadUpdatedAt: number | null;
 };
 
 export type CodexActivityOptions = CodexAppServerClientOptions & {
@@ -75,14 +76,16 @@ export function normalizeCodexActivity(
   options: Pick<CodexActivityOptions, 'ownedThreadIds'> = {},
 ): CodexActivitySnapshot {
   const ownedThreadIds = new Set(options.ownedThreadIds ?? []);
-  const activeThreads = threads.filter((thread): thread is CodexActiveThreadSummary =>
-    isNonOwnedActiveThread(thread, ownedThreadIds),
+  const nonOwnedThreads = threads.filter((thread) => !ownedThreadIds.has(thread.threadId));
+  const activeThreads = nonOwnedThreads.filter(
+    (thread): thread is CodexActiveThreadSummary => thread.status.type === 'active',
   );
 
   return {
     activeThreads,
     checkedThreadCount: threads.length,
     isUserActive: activeThreads.length > 0,
+    latestNonOwnedThreadUpdatedAt: latestUpdatedAt(nonOwnedThreads),
   };
 }
 
@@ -96,6 +99,7 @@ async function readCodexActivityWithClient(
   const seenCursors = new Set<string>();
   let checkedThreadCount = 0;
   let cursor: string | null = null;
+  let latestNonOwnedThreadUpdatedAt: number | null = null;
 
   do {
     if (cursor !== null) {
@@ -119,11 +123,20 @@ async function readCodexActivityWithClient(
 
     checkedThreadCount += snapshot.checkedThreadCount;
     activeThreads.push(...snapshot.activeThreads);
+    latestNonOwnedThreadUpdatedAt = maxNullable(
+      latestNonOwnedThreadUpdatedAt,
+      snapshot.latestNonOwnedThreadUpdatedAt,
+    );
 
     cursor = page.nextCursor;
   } while (cursor !== null);
 
-  return { activeThreads, checkedThreadCount, isUserActive: activeThreads.length > 0 };
+  return {
+    activeThreads,
+    checkedThreadCount,
+    isUserActive: activeThreads.length > 0,
+    latestNonOwnedThreadUpdatedAt,
+  };
 }
 
 function parseThreadListPage(value: unknown): ThreadListPage {
@@ -154,11 +167,21 @@ function parseThreadSummary(value: unknown): CodexThreadSummary {
   };
 }
 
-function isNonOwnedActiveThread(
-  thread: CodexThreadSummary,
-  ownedThreadIds: ReadonlySet<string>,
-): thread is CodexActiveThreadSummary {
-  return thread.status.type === 'active' && !ownedThreadIds.has(thread.threadId);
+function latestUpdatedAt(threads: ReadonlyArray<CodexThreadSummary>): number | null {
+  return threads.reduce<number | null>(
+    (latest, thread) => maxNullable(latest, thread.updatedAt),
+    null,
+  );
+}
+
+function maxNullable(left: number | null, right: number | null): number | null {
+  if (left === null) {
+    return right;
+  }
+  if (right === null) {
+    return left;
+  }
+  return Math.max(left, right);
 }
 
 function parseThreadStatus(value: unknown): CodexThreadStatus {
