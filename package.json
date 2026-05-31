@@ -1,0 +1,46 @@
+{
+  "name": "codex-usage-maxing",
+  "version": "0.0.0",
+  "description": "Native Codex quota reader and starter for a quota-aware workflow runner.",
+  "bin": {
+    "codex-usage-maxing": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun test",
+    "dev": "bun run src/cli.ts",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --type-aware",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nkzw/eslint-plugin": "^2.0.0",
+    "@nkzw/oxlint-config": "^1.2.1",
+    "@types/bun": "latest",
+    "@types/node": "latest",
+    "eslint-plugin-no-only-tests": "^3.4.0",
+    "eslint-plugin-perfectionist": "^5.9.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "oxfmt": "^0.52.0",
+    "oxlint": "^1.67.0",
+    "oxlint-tsgolint": "^0.23.0",
+    "typescript": "latest"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "bun@1.3.8"
+}
