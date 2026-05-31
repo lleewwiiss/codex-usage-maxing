@@ -11,19 +11,13 @@
     "url": "git+https://github.com/lleewwiiss/codex-usage-maxing.git"
   },
   "bin": {
-    "codex-usage-maxing": "./dist/cli.js"
+    "codex-usage-maxing": "dist/cli.js"
   },
   "files": [
     "dist",
     "README.md"
   ],
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
   "publishConfig": {
     "access": "public"
   },

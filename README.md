@@ -37,9 +37,27 @@ bun run build
 - `status`: reads native Codex 5-hour and weekly quota.
 - `activity`: detects active local Codex threads so user work wins.
 - `init`: writes a starter repo config.
+- PR-slot planner: pure idempotency logic for reusing managed worktrees/PRs.
 
-The scheduler, interruption loop, workflow execution, and draft PR publishing are still target
-design, not production behavior yet.
+The scheduler, interruption loop, workflow execution, GitHub reads, and draft PR publishing are still
+target design, not production behavior yet.
+
+## PR slots
+
+The target runner is conservative: it tracks one open draft PR per repo workflow config. The runner
+owns this; prompts do not.
+
+- Work key: GitHub repo + base branch + workflow `id`.
+- Two different goals in one repo should be two workflow configs with different `id`s.
+- Repeated triggers are idempotent: current slots are skipped; stale slots reuse the same managed
+  worktree, branch, and draft PR.
+- The runner checks local worktree state, pulls the latest base, runs the configured workflow, then
+  pushes to the same or a new draft PR.
+- If a human touches the PR, marks it ready for review, removes the marker, pushes new commits, or
+  closes it, automation backs off or cools the slot down.
+- If every configured slot already has an open or cooling-down PR, leftover quota stays unused.
+
+This intentionally leaves some quota on the table. Better that than duplicate PRs and review churn.
 
 ## Native Codex signals
 
@@ -78,6 +96,7 @@ an explicit approval gate.
       "base": "main",
       "workflows": [
         {
+          // Unique per repo/base. This forms the managed PR slot with repo + base.
           "id": "improve-tests",
           "type": "codex-skills",
           "skills": ["~/.agents/skills/improve-test-suite/SKILL.md"],

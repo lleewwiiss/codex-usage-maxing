@@ -54,7 +54,12 @@ describe('formatActivity', () => {
         checkedThreadCount: 8,
         isUserActive: true,
       }),
-    ).toContain('Codex local activity: busy');
+    ).toBe(`Codex local activity: busy
+Checked threads: 8
+
+Active threads:
+- 12345678 cli /tmp/repo — review fix (waitingOnApproval)
+`);
   });
 });
 

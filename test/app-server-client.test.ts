@@ -27,6 +27,13 @@ describe('CodexAppServerClient', () => {
     );
   });
 
+  test('passes CODEX_HOME to the app-server process', async () => {
+    await withFakeCodex(envCheckingServer('/tmp/codex-home'), async (codexBin) => {
+      const client = await CodexAppServerClient.connect({ codexBin, codexHome: '/tmp/codex-home' });
+      client.dispose();
+    });
+  });
+
   test('fails fast on malformed JSON-RPC instead of timing out', async () => {
     await withFakeCodex(
       `process.stdout.write('not json\\n'); setInterval(() => undefined, 1000);`,
@@ -116,6 +123,10 @@ async function writeFakeCodex(directory: string, source: string): Promise<string
   await writeFile(
     codexBin,
     `#!/bin/sh
+if [ "$1" != "app-server" ] || [ "$2" != "--listen" ] || [ "$3" != "stdio://" ] || [ "$4" != "" ]; then
+  echo "unexpected codex args: $*" >&2
+  exit 64
+fi
 exec ${shellQuote(process.execPath)} -e ${shellQuote(source)} "$@"
 `,
   );
@@ -128,6 +139,10 @@ async function writeHangingCodex(directory: string, pidFile: string): Promise<st
   await writeFile(
     codexBin,
     `#!/bin/sh
+if [ "$1" != "app-server" ] || [ "$2" != "--listen" ] || [ "$3" != "stdio://" ] || [ "$4" != "" ]; then
+  echo "unexpected codex args: $*" >&2
+  exit 64
+fi
 echo $$ > ${shellQuote(pidFile)}
 while true; do sleep 1; done
 `,
@@ -212,6 +227,18 @@ function activeThreadServer(): string {
           });
         }
   `);
+}
+
+function envCheckingServer(codexHome: string): string {
+  return appServerScript(
+    '',
+    `
+    if (process.env.CODEX_HOME !== ${JSON.stringify(codexHome)}) {
+      process.stderr.write('wrong CODEX_HOME\\n');
+      process.exit(8);
+    }
+  `,
+  );
 }
 
 function paginatedActiveThreadServer(): string {
@@ -306,8 +333,9 @@ function malformedThreadServer(): string {
   `);
 }
 
-function appServerScript(handleMessage: string): string {
+function appServerScript(handleMessage: string, prelude = ''): string {
   return `
+${prelude}
     process.stdin.setEncoding('utf8');
     let buffer = '';
     function writeResponse(id, result) {
