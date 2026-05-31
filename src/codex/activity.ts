@@ -1,24 +1,32 @@
 import { CodexAppServerClient, type CodexAppServerClientOptions } from './app-server-client.js';
 
+export type CodexActiveThreadStatus = {
+  readonly activeFlags: ReadonlyArray<string>;
+  readonly type: 'active';
+};
+
 export type CodexThreadStatus =
-  | { readonly activeFlags: ReadonlyArray<string>; readonly type: 'active' }
+  | CodexActiveThreadStatus
   | { readonly type: 'idle' }
   | { readonly type: 'notLoaded' }
   | { readonly type: 'systemError' };
 
 export type CodexThreadSummary = {
-  readonly activeFlags: ReadonlyArray<string>;
-  readonly cwd: string | null;
+  readonly cwd: string;
   readonly name: string | null;
-  readonly preview: string | null;
+  readonly preview: string;
   readonly source: string;
   readonly status: CodexThreadStatus;
   readonly threadId: string;
-  readonly updatedAt: number | null;
+  readonly updatedAt: number;
+};
+
+export type CodexActiveThreadSummary = CodexThreadSummary & {
+  readonly status: CodexActiveThreadStatus;
 };
 
 export type CodexActivitySnapshot = {
-  readonly activeThreads: ReadonlyArray<CodexThreadSummary>;
+  readonly activeThreads: ReadonlyArray<CodexActiveThreadSummary>;
   readonly checkedThreadCount: number;
   readonly isUserActive: boolean;
 };
@@ -67,8 +75,8 @@ export function normalizeCodexActivity(
   options: Pick<CodexActivityOptions, 'ownedThreadIds'> = {},
 ): CodexActivitySnapshot {
   const ownedThreadIds = new Set(options.ownedThreadIds ?? []);
-  const activeThreads = threads.filter(
-    (thread) => thread.status.type === 'active' && !ownedThreadIds.has(thread.threadId),
+  const activeThreads = threads.filter((thread): thread is CodexActiveThreadSummary =>
+    isNonOwnedActiveThread(thread, ownedThreadIds),
   );
 
   return {
@@ -84,10 +92,19 @@ async function readCodexActivityWithClient(
 ): Promise<CodexActivitySnapshot> {
   const ownedThreadIds = new Set(options.ownedThreadIds ?? []);
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
+  const activeThreads: Array<CodexActiveThreadSummary> = [];
+  const seenCursors = new Set<string>();
   let checkedThreadCount = 0;
   let cursor: string | null = null;
 
   do {
+    if (cursor !== null) {
+      if (seenCursors.has(cursor)) {
+        throw new Error(`Codex app-server returned a repeated thread/list cursor: ${cursor}.`);
+      }
+      seenCursors.add(cursor);
+    }
+
     const response = await client.request('thread/list', {
       archived: false,
       cursor,
@@ -101,18 +118,12 @@ async function readCodexActivityWithClient(
     const snapshot = normalizeCodexActivity(page.data, { ownedThreadIds });
 
     checkedThreadCount += snapshot.checkedThreadCount;
-    if (snapshot.isUserActive) {
-      return {
-        activeThreads: snapshot.activeThreads,
-        checkedThreadCount,
-        isUserActive: true,
-      };
-    }
+    activeThreads.push(...snapshot.activeThreads);
 
     cursor = page.nextCursor;
   } while (cursor !== null);
 
-  return { activeThreads: [], checkedThreadCount, isUserActive: false };
+  return { activeThreads, checkedThreadCount, isUserActive: activeThreads.length > 0 };
 }
 
 function parseThreadListPage(value: unknown): ThreadListPage {
@@ -122,7 +133,7 @@ function parseThreadListPage(value: unknown): ThreadListPage {
 
   return {
     data: value['data'].map(parseThreadSummary),
-    nextCursor: parseOptionalString(value['nextCursor'], 'nextCursor'),
+    nextCursor: parseNullableString(value['nextCursor'], 'nextCursor'),
   };
 }
 
@@ -133,15 +144,21 @@ function parseThreadSummary(value: unknown): CodexThreadSummary {
 
   const status = parseThreadStatus(value['status']);
   return {
-    activeFlags: status.type === 'active' ? status.activeFlags : [],
-    cwd: parseOptionalString(value['cwd'], 'cwd'),
+    cwd: parseString(value['cwd'], 'cwd'),
     name: parseOptionalString(value['name'], 'name'),
-    preview: parseOptionalString(value['preview'], 'preview'),
+    preview: parseString(value['preview'], 'preview'),
     source: formatSessionSource(value['source']),
     status,
     threadId: parseString(value['id'], 'id'),
-    updatedAt: parseOptionalNumber(value['updatedAt'], 'updatedAt'),
+    updatedAt: parseNumber(value['updatedAt'], 'updatedAt'),
   };
+}
+
+function isNonOwnedActiveThread(
+  thread: CodexThreadSummary,
+  ownedThreadIds: ReadonlySet<string>,
+): thread is CodexActiveThreadSummary {
+  return thread.status.type === 'active' && !ownedThreadIds.has(thread.threadId);
 }
 
 function parseThreadStatus(value: unknown): CodexThreadStatus {
@@ -190,19 +207,15 @@ function parseString(value: unknown, field: string): string {
   return value;
 }
 
-function parseStringArray(value: unknown, field: string): ReadonlyArray<string> {
-  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+function parseNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number') {
     throw new Error(`Codex app-server returned invalid ${field}.`);
   }
   return value;
 }
 
-function parseOptionalNumber(value: unknown, field: string): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (typeof value !== 'number') {
+function parseStringArray(value: unknown, field: string): ReadonlyArray<string> {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
     throw new Error(`Codex app-server returned invalid ${field}.`);
   }
   return value;
@@ -218,6 +231,14 @@ function parseOptionalString(value: unknown, field: string): string | null {
   }
 
   return value;
+}
+
+function parseNullableString(value: unknown, field: string): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  return parseString(value, field);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -4,14 +4,20 @@
 > config. The autonomous workflow runner is the target design, not production-ready behavior yet.
 
 Read native Codex 5-hour session quota, weekly quota, and local thread activity from the existing
-Codex CLI login. This repo is the starter for a workflow runner that will spend leftover quota on
-configured repo maintenance work without stealing quota from user-initiated sessions.
+Codex CLI login. This repo is the starter for a workflow runner that spends leftover quota on
+carefully chosen repo maintenance work without stealing quota from user-initiated sessions.
+
+This is not for blind tokenmaxxing. Using every available session to generate new features is a
+fast way to create tech debt, AI slop, and subtle bugs. The opinionated use case is: be calculated
+about what you build, keep risky/product work human-directed, and spend excess quota paying down
+known debt with review-heavy, validation-backed workflows.
 
 ## Principles
 
 - No CodexBar dependency.
 - No API key setup.
 - No second auth flow: reuse the user's existing Codex CLI login.
+- Spend spare quota on paying down debt, not spraying new product surface area.
 - Target runner behavior: user Codex work wins; automation interrupts and resumes later.
 - Target runner behavior: workflows are repo-scoped and user-defined.
 - Target publishing behavior: draft PRs only by default.
@@ -32,7 +38,7 @@ codex login
 
 ## Native quota source
 
-The first implementation uses Codex's native app-server API:
+The quota reader uses Codex's native app-server API:
 
 ```json
 { "method": "account/rateLimits/read", "id": 1 }
@@ -97,6 +103,24 @@ This repo follows the fast-tooling setup from Christoph Pojer's post:
   unused checks, and NodeNext modules).
 
 ## First workflow shape
+
+Start with review-heavy skills that produce bounded findings, avoid live side effects, and have a
+clear validation command. Good candidates:
+
+- [`openclaw/agent-skills` `autoreview`](https://github.com/openclaw/agent-skills/tree/main/skills/autoreview)
+  for a general autonomous review pass.
+- [`lleewwiiss/codex-agents` `improve-codebase-architecture`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/improve-codebase-architecture)
+  for bounded architecture cleanup plans.
+- [`lleewwiiss/codex-agents` `improve-test-suite`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/improve-test-suite)
+  for test-suite simplification and higher-signal coverage.
+- [`lleewwiiss/codex-agents` `review-and-simplify-changes`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/review-and-simplify-changes)
+  for post-change simplification passes.
+- [`lleewwiiss/codex-agents` `systematic-debugging`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/systematic-debugging)
+  for repos with known failing tests or flaky behavior.
+
+For now, point `skills` at local `SKILL.md` files from a cloned or vendored skill repo. Avoid
+workflows that deploy, publish, rotate secrets, or mutate shared services unless the runner has an
+explicit approval gate for that repo.
 
 ```jsonc
 {

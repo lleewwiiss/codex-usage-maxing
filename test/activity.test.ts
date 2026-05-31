@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
-import { normalizeCodexActivity, type CodexThreadSummary } from '../src/codex/activity.js';
+import {
+  normalizeCodexActivity,
+  type CodexActiveThreadSummary,
+  type CodexThreadSummary,
+} from '../src/codex/activity.js';
 import { formatActivity } from '../src/codex/format-activity.js';
 
 describe('normalizeCodexActivity', () => {
@@ -39,8 +43,7 @@ describe('formatActivity', () => {
     expect(
       formatActivity({
         activeThreads: [
-          thread({
-            activeFlags: ['waitingOnApproval'],
+          activeThread({
             cwd: '/tmp/repo',
             name: 'review fix',
             source: 'cli',
@@ -55,16 +58,28 @@ describe('formatActivity', () => {
   });
 });
 
+function activeThread(overrides: Partial<CodexActiveThreadSummary>): CodexActiveThreadSummary {
+  return {
+    cwd: '/tmp/repo',
+    name: null,
+    preview: 'thread preview',
+    source: 'cli',
+    status: { activeFlags: [], type: 'active' },
+    threadId: 'thread-id',
+    updatedAt: 100,
+    ...overrides,
+  };
+}
+
 function thread(overrides: Partial<CodexThreadSummary>): CodexThreadSummary {
   return {
-    activeFlags: [],
-    cwd: null,
+    cwd: '/tmp/repo',
     name: null,
-    preview: null,
+    preview: 'thread preview',
     source: 'cli',
     status: { type: 'idle' },
     threadId: 'thread-id',
-    updatedAt: null,
+    updatedAt: 100,
     ...overrides,
   };
 }

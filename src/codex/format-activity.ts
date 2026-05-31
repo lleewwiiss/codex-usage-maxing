@@ -8,8 +8,7 @@ export function formatActivity(activity: CodexActivitySnapshot): string {
 }
 
 function formatActiveThread(thread: CodexThreadSummary): string {
-  const name = thread.name ?? thread.preview ?? 'untitled';
-  const cwd = thread.cwd === null ? 'unknown cwd' : thread.cwd;
-  const flags = thread.activeFlags.length === 0 ? '' : ` (${thread.activeFlags.join(', ')})`;
-  return `- ${thread.threadId.slice(0, 8)} ${thread.source} ${cwd} — ${name}${flags}`;
+  const flags = thread.status.type === 'active' ? thread.status.activeFlags : [];
+  const suffix = flags.length === 0 ? '' : ` (${flags.join(', ')})`;
+  return `- ${thread.threadId.slice(0, 8)} ${thread.source} ${thread.cwd} — ${thread.name ?? thread.preview}${suffix}`;
 }

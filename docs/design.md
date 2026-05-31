@@ -4,8 +4,8 @@ Current implementation: `init` writes starter config, `status` reads native Code
 `activity` reads native local Codex thread activity. The sections below describe the runner shape
 this repo is being built toward.
 
-Status: experimental. Market the repository as an early quota-reader/runner scaffold until the
-workflow scheduler, interruption loop, and publishing path are implemented and hardened.
+Status: experimental quota-reader/runner scaffold. The workflow scheduler, interruption loop, and
+publishing path are not implemented yet.
 
 ## Goal
 

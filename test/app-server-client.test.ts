@@ -58,13 +58,30 @@ describe('CodexAppServerClient', () => {
     });
   });
 
-  test('scans thread/list pages before reporting idle', async () => {
+  test('scans all thread/list pages before returning active threads', async () => {
     await withFakeCodex(paginatedActiveThreadServer(), async (codexBin) => {
       await expect(readCodexActivity({ codexBin, pageSize: 1 })).resolves.toMatchObject({
-        activeThreads: [{ threadId: 'thread-active-page-two' }],
+        activeThreads: [
+          { threadId: 'thread-active-page-one' },
+          { threadId: 'thread-active-page-two' },
+        ],
         checkedThreadCount: 2,
         isUserActive: true,
       });
+    });
+  });
+
+  test('fails closed when thread/list omits required pagination', async () => {
+    await withFakeCodex(missingCursorThreadServer(), async (codexBin) => {
+      await expect(readCodexActivity({ codexBin })).rejects.toThrow('invalid nextCursor');
+    });
+  });
+
+  test('fails closed when thread/list repeats a cursor', async () => {
+    await withFakeCodex(repeatedCursorThreadServer(), async (codexBin) => {
+      await expect(readCodexActivity({ codexBin, pageSize: 1 })).rejects.toThrow(
+        'repeated thread/list cursor',
+      );
     });
   });
 
@@ -206,6 +223,7 @@ function paginatedActiveThreadServer(): string {
               {
                 id: 'thread-active-page-two',
                 cwd: '/tmp/other',
+                preview: 'active page two',
                 source: 'cli',
                 status: { type: 'active', activeFlags: [] },
                 updatedAt: 200,
@@ -215,14 +233,54 @@ function paginatedActiveThreadServer(): string {
           } : {
             data: [
               {
-                id: 'thread-idle-page-one',
+                id: 'thread-active-page-one',
                 cwd: '/tmp/repo',
+                preview: 'active page one',
+                source: 'cli',
+                status: { type: 'active', activeFlags: ['waitingOnUserInput'] },
+                updatedAt: 100,
+              },
+            ],
+            nextCursor: 'page-two',
+          });
+        }
+  `);
+}
+
+function missingCursorThreadServer(): string {
+  return appServerScript(`
+        if (message.method === 'thread/list') {
+          writeResponse(message.id, {
+            data: [
+              {
+                id: 'thread-idle',
+                cwd: '/tmp/repo',
+                preview: 'idle work',
                 source: 'cli',
                 status: { type: 'idle' },
                 updatedAt: 100,
               },
             ],
-            nextCursor: 'page-two',
+          });
+        }
+  `);
+}
+
+function repeatedCursorThreadServer(): string {
+  return appServerScript(`
+        if (message.method === 'thread/list') {
+          writeResponse(message.id, {
+            data: [
+              {
+                id: 'thread-idle',
+                cwd: '/tmp/repo',
+                preview: 'idle work',
+                source: 'cli',
+                status: { type: 'idle' },
+                updatedAt: 100,
+              },
+            ],
+            nextCursor: 'same-cursor',
           });
         }
   `);
@@ -236,6 +294,7 @@ function malformedThreadServer(): string {
               {
                 id: 'thread-mystery',
                 cwd: '/tmp/repo',
+                preview: 'mystery work',
                 source: 'cli',
                 status: { type: 'mystery' },
                 updatedAt: 100,

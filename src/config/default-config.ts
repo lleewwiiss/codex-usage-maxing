@@ -26,7 +26,7 @@ export type RepoConfig = {
 };
 
 export const defaultConfigText = `{
-  // Native Codex quota only. Requires existing \`codex login\`.
+  // Native Codex quota and local activity. Requires existing \`codex login\`.
   "quota": {
     "session": {
       "minRemainingToStart": 30,
