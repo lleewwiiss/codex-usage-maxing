@@ -2,11 +2,11 @@
 
 [![npm](https://img.shields.io/npm/v/codex-usage-maxing?label=npm)](https://www.npmjs.com/package/codex-usage-maxing)
 
-Experimental Codex quota-aware maintenance runner.
+Experimental Codex quota/activity CLI and runner scaffold.
 
 Goal: use leftover 5-hour and weekly Codex sessions to pay down tech debt, not to spray new product
 surface area. Blind tokenmaxxing creates tech debt, AI slop, and subtle bugs. This project is for
-calculated, repo-scoped cleanup work with validation and draft PRs.
+calculated, repo-scoped cleanup work. Target behavior: validation-backed draft PRs.
 
 ## Use it
 
@@ -90,4 +90,4 @@ an explicit approval gate.
 }
 ```
 
-See [`docs/design.md`](docs/design.md) for the target runner design.
+See the [target runner design](https://github.com/lleewwiiss/codex-usage-maxing/blob/master/docs/design.md).

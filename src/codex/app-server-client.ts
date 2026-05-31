@@ -28,6 +28,7 @@ type PendingRequest = {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const MAX_STDERR_CHARS = 4000;
+const PACKAGE_VERSION = '0.1.0';
 
 export class CodexAppServerClient {
   readonly #codexBin: string;
@@ -54,7 +55,7 @@ export class CodexAppServerClient {
         clientInfo: {
           name: 'codex-usage-maxing',
           title: 'codex-usage-maxing',
-          version: '0.0.0',
+          version: PACKAGE_VERSION,
         },
       });
       client.notify('initialized');

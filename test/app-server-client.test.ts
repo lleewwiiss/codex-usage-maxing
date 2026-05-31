@@ -323,6 +323,10 @@ function appServerScript(handleMessage: string): string {
         }
         const message = JSON.parse(line);
         if (message.method === 'initialize') {
+          if (message.params?.clientInfo?.version !== '0.1.0') {
+            process.stderr.write('wrong client version\\n');
+            process.exit(9);
+          }
           writeResponse(message.id, {});
         }
 ${handleMessage}

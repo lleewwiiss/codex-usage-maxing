@@ -1,7 +1,15 @@
 {
   "name": "codex-usage-maxing",
   "version": "0.1.0",
-  "description": "Experimental Codex quota-aware maintenance runner.",
+  "description": "Experimental Codex quota/activity CLI and runner scaffold.",
+  "homepage": "https://github.com/lleewwiiss/codex-usage-maxing#readme",
+  "bugs": {
+    "url": "https://github.com/lleewwiiss/codex-usage-maxing/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lleewwiiss/codex-usage-maxing.git"
+  },
   "bin": {
     "codex-usage-maxing": "./dist/cli.js"
   },
@@ -20,7 +28,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "check": "bun run typecheck && bun run lint && bun run format:check && bun test",
     "dev": "bun run src/cli.ts",
     "format": "oxfmt",
