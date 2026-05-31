@@ -64,7 +64,6 @@ clear validation command:
 - [`lleewwiiss/codex-agents` `improve-codebase-architecture`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/improve-codebase-architecture)
 - [`lleewwiiss/codex-agents` `improve-test-suite`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/improve-test-suite)
 - [`lleewwiiss/codex-agents` `review-and-simplify-changes`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/review-and-simplify-changes)
-- [`lleewwiiss/codex-agents` `systematic-debugging`](https://github.com/lleewwiiss/codex-agents/tree/main/skills/systematic-debugging)
 
 Avoid workflows that deploy, publish, rotate secrets, or mutate shared services unless the repo has
 an explicit approval gate.
