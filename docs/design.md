@@ -1,7 +1,8 @@
 # Target system design
 
-Current implementation: `init` writes starter config and `status` reads native Codex quota. The
-sections below describe the runner shape this repo is being built toward.
+Current implementation: `init` writes starter config, `status` reads native Codex quota, and
+`activity` reads native local Codex thread activity. The sections below describe the runner shape
+this repo is being built toward.
 
 Status: experimental. Market the repository as an early quota-reader/runner scaffold until the
 workflow scheduler, interruption loop, and publishing path are implemented and hardened.
@@ -18,6 +19,8 @@ Use native Codex only:
 - `codex app-server --listen stdio://`
 - `account/rateLimits/read`
 - `account/rateLimits/updated`
+- `thread/list`
+- `thread/status/changed`
 
 No CodexBar. No API key. No reauth beyond the user's existing `codex login`.
 
@@ -35,9 +38,13 @@ immediately.
 
 Planned detection sources, in order:
 
-1. Codex app-server thread state and `thread/status/changed` notifications.
+1. Codex app-server thread state from `thread/list`, then `thread/status/changed` notifications for
+   live preemption.
 2. Active thread IDs owned by this orchestrator in the local ledger.
 3. Process fallback: unknown `codex` process means user work.
+
+Implemented now: snapshot polling via `thread/list`. The scheduler should pass its owned thread IDs
+so any active, non-owned thread immediately blocks or interrupts automation.
 
 Local user work gets a strong guarantee. Remote/cloud Codex work cannot be known before it uses
 quota, so reserve thresholds and frequent quota updates remain required.

@@ -1,11 +1,11 @@
 # codex-usage-maxing
 
-> Experimental. This repo currently ships a native Codex quota reader and starter config. The
-> autonomous workflow runner is the target design, not production-ready behavior yet.
+> Experimental. This repo currently ships native Codex quota and local-activity readers plus starter
+> config. The autonomous workflow runner is the target design, not production-ready behavior yet.
 
-Read native Codex 5-hour session and weekly quota from the existing Codex CLI login. This repo is
-the starter for a workflow runner that will spend leftover quota on configured repo maintenance
-work without stealing quota from user-initiated sessions.
+Read native Codex 5-hour session quota, weekly quota, and local thread activity from the existing
+Codex CLI login. This repo is the starter for a workflow runner that will spend leftover quota on
+configured repo maintenance work without stealing quota from user-initiated sessions.
 
 ## Principles
 
@@ -46,6 +46,18 @@ key. The quota reader expects:
 
 If either window is missing, the quota reader fails closed.
 
+## Native local activity source
+
+The local activity reader uses Codex's native thread API:
+
+```json
+{ "method": "thread/list", "params": { "useStateDbOnly": true }, "id": 1 }
+```
+
+Any thread with `status.type === "active"` is treated as user activity unless its thread ID is
+explicitly marked as owned by this orchestrator. Unknown or malformed thread statuses fail closed,
+so the runner should not start automation when it cannot prove the local host is idle.
+
 ## Important limitation: remote/VPS Codex sessions
 
 Local Codex activity detection can only see Codex app-server state and processes on machines/Codex
@@ -67,12 +79,13 @@ remote hosts.
 ## Commands
 
 ```sh
+bun run dev activity
 bun run dev status
 bun run dev init
 ```
 
-`status` prints current native Codex quota. `init` writes a starter
-`codex-usage-maxing.config.jsonc` in the current repo.
+`activity` prints local Codex thread activity, `status` prints current native Codex quota, and
+`init` writes a starter `codex-usage-maxing.config.jsonc` in the current repo.
 
 ## Tooling
 

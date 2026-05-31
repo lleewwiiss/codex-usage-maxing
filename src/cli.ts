@@ -2,7 +2,9 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { formatActivity } from './codex/format-activity.js';
 import { formatQuota } from './codex/format-quota.js';
+import { readCodexActivity } from './codex/activity.js';
 import { readCodexQuota } from './codex/quota.js';
 import { defaultConfigText } from './config/default-config.js';
 
@@ -12,6 +14,11 @@ async function main(argv: ReadonlyArray<string>): Promise<void> {
   const command = argv[2] ?? 'help';
 
   switch (command) {
+    case 'activity': {
+      const activity = await readCodexActivity();
+      process.stdout.write(formatActivity(activity));
+      return;
+    }
     case 'help': {
       writeHelp();
       return;
@@ -35,6 +42,7 @@ function writeHelp(): void {
   process.stdout.write(`codex-usage-maxing
 
 Commands:
+  activity  Read local Codex thread activity for user-preemption
   init      Write ${CONFIG_FILE_NAME} in the current directory
   status    Read native Codex 5h session + weekly quota
   help      Show this help

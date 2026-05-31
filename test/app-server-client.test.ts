@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import { readCodexActivity } from '../src/codex/activity.js';
 import { CodexAppServerClient } from '../src/codex/app-server-client.js';
 import { readCodexQuota } from '../src/codex/quota.js';
 
@@ -44,6 +45,32 @@ describe('CodexAppServerClient', () => {
       const pid = await waitForPidFile(pidFile);
       await expect(connect).rejects.toThrow('timed out');
       await expect(waitForProcessExit(pid)).resolves.toBe(true);
+    });
+  });
+
+  test('reads active local threads through a JSON-RPC app-server process', async () => {
+    await withFakeCodex(activeThreadServer(), async (codexBin) => {
+      await expect(readCodexActivity({ codexBin })).resolves.toMatchObject({
+        activeThreads: [{ threadId: 'thread-user-active' }],
+        checkedThreadCount: 2,
+        isUserActive: true,
+      });
+    });
+  });
+
+  test('scans thread/list pages before reporting idle', async () => {
+    await withFakeCodex(paginatedActiveThreadServer(), async (codexBin) => {
+      await expect(readCodexActivity({ codexBin, pageSize: 1 })).resolves.toMatchObject({
+        activeThreads: [{ threadId: 'thread-active-page-two' }],
+        checkedThreadCount: 2,
+        isUserActive: true,
+      });
+    });
+  });
+
+  test('fails closed on malformed thread status', async () => {
+    await withFakeCodex(malformedThreadServer(), async (codexBin) => {
+      await expect(readCodexActivity({ codexBin })).rejects.toThrow('unknown thread status');
     });
   });
 });
@@ -127,9 +154,106 @@ function isProcessAlive(pid: number): boolean {
 }
 
 function validQuotaServer(): string {
+  return appServerScript(`
+        if (message.method === 'account/rateLimits/read') {
+          writeResponse(message.id, {
+            rateLimits: {
+              limitId: 'codex',
+              primary: { usedPercent: 21, windowDurationMins: 300, resetsAt: 100 },
+              secondary: { usedPercent: 4, windowDurationMins: 10080, resetsAt: 200 },
+            },
+          });
+        }
+  `);
+}
+
+function activeThreadServer(): string {
+  return appServerScript(`
+        if (message.method === 'thread/list') {
+          writeResponse(message.id, {
+            data: [
+              {
+                id: 'thread-idle',
+                cwd: '/tmp/repo',
+                name: null,
+                preview: 'idle work',
+                source: 'cli',
+                status: { type: 'idle' },
+                updatedAt: 100,
+              },
+              {
+                id: 'thread-user-active',
+                cwd: '/tmp/other',
+                name: 'user work',
+                preview: 'active work',
+                source: 'vscode',
+                status: { type: 'active', activeFlags: ['waitingOnApproval'] },
+                updatedAt: 200,
+              },
+            ],
+            nextCursor: null,
+          });
+        }
+  `);
+}
+
+function paginatedActiveThreadServer(): string {
+  return appServerScript(`
+        if (message.method === 'thread/list') {
+          const secondPage = message.params?.cursor === 'page-two';
+          writeResponse(message.id, secondPage ? {
+            data: [
+              {
+                id: 'thread-active-page-two',
+                cwd: '/tmp/other',
+                source: 'cli',
+                status: { type: 'active', activeFlags: [] },
+                updatedAt: 200,
+              },
+            ],
+            nextCursor: null,
+          } : {
+            data: [
+              {
+                id: 'thread-idle-page-one',
+                cwd: '/tmp/repo',
+                source: 'cli',
+                status: { type: 'idle' },
+                updatedAt: 100,
+              },
+            ],
+            nextCursor: 'page-two',
+          });
+        }
+  `);
+}
+
+function malformedThreadServer(): string {
+  return appServerScript(`
+        if (message.method === 'thread/list') {
+          writeResponse(message.id, {
+            data: [
+              {
+                id: 'thread-mystery',
+                cwd: '/tmp/repo',
+                source: 'cli',
+                status: { type: 'mystery' },
+                updatedAt: 100,
+              },
+            ],
+            nextCursor: null,
+          });
+        }
+  `);
+}
+
+function appServerScript(handleMessage: string): string {
   return `
     process.stdin.setEncoding('utf8');
     let buffer = '';
+    function writeResponse(id, result) {
+      process.stdout.write(JSON.stringify({ id, result }) + '\\n');
+    }
     process.stdin.on('data', (chunk) => {
       buffer += chunk;
       const lines = buffer.split('\\n');
@@ -140,20 +264,9 @@ function validQuotaServer(): string {
         }
         const message = JSON.parse(line);
         if (message.method === 'initialize') {
-          process.stdout.write(JSON.stringify({ id: message.id, result: {} }) + '\\n');
+          writeResponse(message.id, {});
         }
-        if (message.method === 'account/rateLimits/read') {
-          process.stdout.write(JSON.stringify({
-            id: message.id,
-            result: {
-              rateLimits: {
-                limitId: 'codex',
-                primary: { usedPercent: 21, windowDurationMins: 300, resetsAt: 100 },
-                secondary: { usedPercent: 4, windowDurationMins: 10080, resetsAt: 200 },
-              },
-            },
-          }) + '\\n');
-        }
+${handleMessage}
       }
     });
   `;

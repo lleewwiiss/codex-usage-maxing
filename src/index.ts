@@ -1,4 +1,13 @@
 export { CodexAppServerClient } from './codex/app-server-client.js';
+export {
+  normalizeCodexActivity,
+  readCodexActivity,
+  type CodexActivityOptions,
+  type CodexActivitySnapshot,
+  type CodexThreadStatus,
+  type CodexThreadSummary,
+} from './codex/activity.js';
+export { formatActivity } from './codex/format-activity.js';
 export { formatQuota } from './codex/format-quota.js';
 export {
   SESSION_WINDOW_MINUTES,
