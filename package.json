@@ -1,7 +1,7 @@
 {
   "name": "codex-usage-maxing",
   "version": "0.0.0",
-  "description": "Native Codex quota reader and starter for a quota-aware workflow runner.",
+  "description": "Experimental native Codex quota reader and starter for a quota-aware workflow runner.",
   "bin": {
     "codex-usage-maxing": "./dist/cli.js"
   },

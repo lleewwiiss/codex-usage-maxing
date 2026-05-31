@@ -1,5 +1,8 @@
 # codex-usage-maxing
 
+> Experimental. This repo currently ships a native Codex quota reader and starter config. The
+> autonomous workflow runner is the target design, not production-ready behavior yet.
+
 Read native Codex 5-hour session and weekly quota from the existing Codex CLI login. This repo is
 the starter for a workflow runner that will spend leftover quota on configured repo maintenance
 work without stealing quota from user-initiated sessions.
@@ -42,6 +45,24 @@ key. The quota reader expects:
 - `windowDurationMins: 10080` → weekly limit.
 
 If either window is missing, the quota reader fails closed.
+
+## Important limitation: remote/VPS Codex sessions
+
+Local Codex activity detection can only see Codex app-server state and processes on machines/Codex
+homes the runner monitors. If you start Codex on a VPS, another laptop, GitHub/cloud Codex, or any
+other remote environment using the same account, this repo cannot interrupt that remote work before
+it consumes quota.
+
+The planned runner should handle that conservatively:
+
+- keep session and weekly reserve thresholds;
+- poll `account/rateLimits/read` / subscribe to `account/rateLimits/updated`;
+- pause when quota drops unexpectedly;
+- optionally support configured remote monitors later, e.g. SSH to a VPS and query that host's
+  Codex app-server.
+
+So the user-priority promise is strong for monitored local hosts, and conservative for unmonitored
+remote hosts.
 
 ## Commands
 

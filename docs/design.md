@@ -3,6 +3,9 @@
 Current implementation: `init` writes starter config and `status` reads native Codex quota. The
 sections below describe the runner shape this repo is being built toward.
 
+Status: experimental. Market the repository as an early quota-reader/runner scaffold until the
+workflow scheduler, interruption loop, and publishing path are implemented and hardened.
+
 ## Goal
 
 Run configured Codex workflows during off-peak/idle periods to spend quota that would otherwise
@@ -38,6 +41,22 @@ Planned detection sources, in order:
 
 Local user work gets a strong guarantee. Remote/cloud Codex work cannot be known before it uses
 quota, so reserve thresholds and frequent quota updates remain required.
+
+### Remote/VPS sessions
+
+Codex app-server thread state is local to a machine and `CODEX_HOME`. If the same account is running
+Codex on a VPS, another workstation, or a cloud/GitHub Codex surface, a local runner cannot see the
+remote active thread before it spends quota. There is no known native cross-host "active turn"
+reservation API.
+
+Conservative policy for MVP:
+
+- Treat local monitored hosts as strongly preemptive: active user thread interrupts automation.
+- Treat remote/unmonitored hosts as quota-only signals: unexpected 5h/weekly usage drop pauses new
+  automation and interrupts any current local automation.
+- Keep user reserve thresholds even near reset unless explicitly configured otherwise.
+- Later support an optional `remoteHosts` monitor that connects over SSH and runs the same
+  app-server thread-state check on the VPS.
 
 ## Planned workflow adapters
 
